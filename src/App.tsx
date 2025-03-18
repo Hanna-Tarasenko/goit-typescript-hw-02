@@ -1,34 +1,53 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
 import SearchBar from "./components/SearchBar/SearchBar";
 import ImageGallery from "./components/ImageGallery/ImageGallery";
 import toast from "react-hot-toast";
 import ImageModal from "./components/ImageModal/ImageModal";
-import { useEffect } from "react";
 import { fetchImages } from "./services/Unsplash";
 import Loader from "./components/Loader/Loader";
-import LoadMoreBtn from "./components/LoadMoreBtn/LoadMoreBtn";
 import ErrorMessage from "./components/ErrorMessage/ErrorMessage";
 
-const App = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [images, setImages] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [page, setPage] = useState(1);
-  const [modalIsOpen, setModalIsOpen] = useState(false);
-  const [selectedImage, setSelectedImage] = useState({ src: "", alt: "" });
+interface Image {
+  id: string;
+  urls: {
+    small: string;
+    regular: string;
+  };
+  alt_description: string;
+}
 
-  const handleSearchSubmit = (query) => {
+interface SelectedImage {
+  src: string;
+  alt: string;
+}
+
+const App: React.FC = () => {
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [images, setImages] = useState<Image[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const [modalIsOpen, setModalIsOpen] = useState<boolean>(false);
+  const [selectedImage, setSelectedImage] = useState<SelectedImage>({
+    src: "",
+    alt: "",
+  });
+
+  const handleSearchSubmit = (query: string) => {
     setSearchQuery(query);
+    setImages([]);
+    setPage(1);
   };
 
   useEffect(() => {
     const getImages = async () => {
+      if (!searchQuery) return;
+
       setLoading(true);
       setError(null);
       try {
-        const fetchedImages = await fetchImages(searchQuery, page);
+        const fetchedImages = await fetchImages({ query: searchQuery, page });
         setImages((prevImages) => [...prevImages, ...fetchedImages]);
       } catch (err) {
         console.error("Error:", err);
@@ -39,18 +58,14 @@ const App = () => {
       }
     };
 
-    if (searchQuery) {
-      setImages([]);
-      setPage(1);
-      getImages();
-    }
+    getImages();
   }, [searchQuery, page]);
 
-  const loadMore = async () => {
+  const loadMore = () => {
     setPage((prevPage) => prevPage + 1);
   };
 
-  const openModal = (image) => {
+  const openModal = (image: SelectedImage) => {
     setSelectedImage(image);
     setModalIsOpen(true);
   };
@@ -66,10 +81,11 @@ const App = () => {
       {error && <ErrorMessage message={error} />}
       {!loading && images.length > 0 && (
         <>
-          <ImageGallery images={images} openModal={openModal} />
-          <LoadMoreBtn
-            onLoadMore={loadMore}
-            show={images.length > 0 && !loading}
+          <ImageGallery
+            images={images}
+            loading={loading}
+            loadMore={loadMore}
+            openModal={openModal}
           />
         </>
       )}

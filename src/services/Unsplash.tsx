@@ -9,7 +9,15 @@ const unsplashApi = axios.create({
   },
 });
 
-export const fetchImages = async (query, page = 1) => {
+interface FetchImagesParams {
+  query: string;
+  page?: number;
+}
+
+export const fetchImages = async ({
+  query,
+  page = 1,
+}: FetchImagesParams): Promise<any[]> => {
   const response = await unsplashApi.get("/search/photos", {
     params: { query, per_page: 12, page },
   });
